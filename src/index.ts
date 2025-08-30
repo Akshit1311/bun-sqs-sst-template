@@ -1,30 +1,28 @@
-export const handler = async (event: any) => {
-  // Handle different event structures
-  const httpMethod = event.httpMethod || event.requestContext?.http?.method;
-  const path =
-    event.path || event.rawPath || event.requestContext?.http?.path || "/";
-  const queryStringParameters = event.queryStringParameters || {};
-  const body = event.body;
+import { z } from "zod";
+import {
+  awsLambdaRequestHandler,
+  type CreateAWSLambdaContextOptions,
+} from "@trpc/server/adapters/aws-lambda";
+import { initTRPC } from "@trpc/server";
+import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
 
-  if (httpMethod === "POST" && path === "/send") {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        message: "Video URL sent to queue successfully!",
-      }),
-    };
-  }
+const t = initTRPC
+  .context<
+    CreateAWSLambdaContextOptions<APIGatewayProxyEvent | APIGatewayProxyEventV2>
+  >()
+  .create();
 
-  return {
-    statusCode: 404,
-    body: JSON.stringify({
-      error: "Not found",
-      debug: {
-        httpMethod,
-        path,
-        availablePaths: ["/send"],
-      },
+const router = t.router({
+  greet: t.procedure
+    .input(z.object({ name: z.string() }))
+    .query(({ input }) => {
+      return `Hello ${input.name}!`;
     }),
-  };
-};
+});
+
+export type Router = typeof router;
+
+export const handler = awsLambdaRequestHandler({
+  router: router,
+  createContext: (opts) => opts,
+});

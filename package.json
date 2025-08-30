@@ -1,5 +1,5 @@
 {
-  "name": "bun-sqs-sst-template",
+  "name": "bun-sst-template",
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
@@ -15,6 +15,9 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "sst": "3.17.11"
+    "@trpc/client": "^11.0.0",
+    "@trpc/server": "^11.0.0",
+    "sst": "3.17.11",
+    "zod": "^4.1.5"
   }
 }

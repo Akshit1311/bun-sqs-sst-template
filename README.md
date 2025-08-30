@@ -1,13 +1,13 @@
-# Bun SQS SST Template
+# Bun SST Template
 
-A serverless bun sqs sst template built with [SST (Serverless Stack)](https://sst.dev/) and AWS SQS for scalable video analytics.
+A serverless bun sst template built with [SST (Serverless Stack)](https://sst.dev/) and tRPC for type-safe API development.
 
 ## 🏗️ Architecture
 
 This template demonstrates:
 - **SST v3** for infrastructure as code
 - **AWS Lambda** for serverless compute
-- **Amazon SQS** for message queuing
+- **tRPC** for type-safe API development
 - **TypeScript** for type safety
 - **Bun** for fast package management and runtime
 
@@ -53,7 +53,8 @@ bun run remove
 ```
 bun-sqs-sst-template/
 ├── src/
-│   └── index.ts          # Lambda function handler
+│   ├── index.ts          # tRPC server handler
+│   └── client.ts         # tRPC client example
 ├── sst.config.ts         # SST configuration
 ├── package.json          # Dependencies and scripts
 ├── tsconfig.json         # TypeScript configuration
@@ -85,32 +86,32 @@ STAGE=dev
 
 ## 📊 API Endpoints
 
-### POST `/send`
-Send a video URL for tracking.
+### tRPC Procedures
 
-**Request:**
-```json
+#### `greet`
+Greets a user with their name.
+
+**Input:**
+```typescript
 {
-  "videoUrl": "https://example.com/video.mp4",
-  "userId": "user123",
-  "metadata": {
-    "platform": "web",
-    "timestamp": "2024-01-01T00:00:00Z"
-  }
+  name: string
 }
 ```
 
 **Response:**
-```json
-{
-  "success": true,
-  "message": "Video URL sent to queue successfully!"
-}
+```typescript
+string // "Hello {name}!"
 ```
 
-## 🏷️ Adding SQS Integration
+**Example usage:**
+```typescript
+const result = await client.greet.query({ name: "John" });
+// Returns: "Hello John!"
+```
 
-To complete the SQS integration, update your `sst.config.ts`:
+## 🏷️ tRPC Integration
+
+The template includes a complete tRPC setup with type-safe API development:
 
 ```typescript
 /// <reference path="./.sst/platform/config.d.ts" />
@@ -125,21 +126,22 @@ export default $config({
     };
   },
   async run() {
-    // Create SQS Queue
-    const queue = new sst.aws.Queue("ViewTrackingQueue", {
-      fifo: false,
+    // Create tRPC Server
+    const trpc = new sst.aws.Function("Trpc", {
+      url: true,
+      handler: "src/index.handler",
     });
 
-    // Create Lambda Function
-    const api = new sst.aws.Function("ViewTracker", {
-      handler: "src/index.handler",
-      link: [queue],
+    // Create tRPC Client Example
+    const client = new sst.aws.Function("Client", {
       url: true,
+      link: [trpc],
+      handler: "src/client.handler",
     });
 
     return {
-      api: api.url,
-      queue: queue.url,
+      api: trpc.url,
+      client: client.url,
     };
   },
 });
@@ -169,10 +171,13 @@ sst shell
 ### API Testing
 
 ```bash
-# Test the API endpoint
-curl -X POST https://your-api-url/send \
+# Test the tRPC endpoint
+curl -X POST https://your-api-url/greet \
   -H "Content-Type: application/json" \
-  -d '{"videoUrl": "https://example.com/video.mp4"}'
+  -d '{"name": "World"}'
+
+# Or use the client function URL directly
+curl https://your-client-url
 ```
 
 ## 📦 Deployment Stages
@@ -198,7 +203,7 @@ sst console
 ### Metrics
 Monitor your service with:
 - Lambda function metrics
-- SQS queue metrics
+- tRPC request/response metrics
 - API Gateway metrics
 
 ## 🛠️ Customization
@@ -208,13 +213,13 @@ Monitor your service with:
 Update your function configuration in `sst.config.ts`:
 
 ```typescript
-const api = new sst.aws.Function("ViewTracker", {
+const trpc = new sst.aws.Function("Trpc", {
   handler: "src/index.handler",
   environment: {
     DATABASE_URL: "your-database-url",
     API_KEY: "your-api-key",
   },
-  link: [queue],
+  url: true,
 });
 ```
 
@@ -223,6 +228,9 @@ const api = new sst.aws.Function("ViewTracker", {
 ```bash
 bun add package-name
 bun add -d @types/package-name  # For TypeScript types
+
+# tRPC is already included:
+# @trpc/client @trpc/server zod
 ```
 
 ## 🤝 Contributing
@@ -242,7 +250,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Resources
 
 - [SST Documentation](https://sst.dev/docs/)
-- [AWS SQS Documentation](https://docs.aws.amazon.com/sqs/)
+- [tRPC Documentation](https://trpc.io/docs)
 - [AWS Lambda Documentation](https://docs.aws.amazon.com/lambda/)
 - [Bun Documentation](https://bun.sh/docs)
 
